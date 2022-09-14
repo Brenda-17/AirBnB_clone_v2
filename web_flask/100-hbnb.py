@@ -1,36 +1,32 @@
 #!/usr/bin/python3
-""" Display into webpage 
+"""Starts a Flask web application.
+
+The application listens on 0.0.0.0, port 5000.
+Routes:
+    /hbnb: HBnB home page.
 """
-from flask import Flask, render_template
-import models
 from models import storage
-from models.state import State
-from models.amenity import Amenity
-from models.place import Place
-from models.user import User
+from flask import Flask
+from flask import render_template
+
 app = Flask(__name__)
 
 
+@app.route("/hbnb", strict_slashes=False)
+def hbnb():
+    """Displays the main HBnB filters HTML page."""
+    states = storage.all("State")
+    amenities = storage.all("Amenity")
+    places = storage.all("Place")
+    return render_template("100-hbnb.html",
+                           states=states, amenities=amenities, places=places)
+
+
 @app.teardown_appcontext
-def storage_close(self):
-    """ Module for remove the SQLAlchemy Session. 
-    """
+def teardown(exc):
+    """Remove the current SQLAlchemy session."""
     storage.close()
 
 
-@app.route('/hbnb_filters', strict_slashes=False)
-def hbnb_filters():
-    """ Display into webpage 
-    """
-    value_state = storage.all(State).values()
-    value_amenity = storage.all(Amenity).values()
-    value_place = storage.all(Place).values()
-    #value_users = storage.all(User).values()
-    value_users = storage.all(User)
-    return render_template(
-        '100-hbnb.html', states=value_state,
-        amenities=value_amenity, places=value_place, users=value_users)
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
