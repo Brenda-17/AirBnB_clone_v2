@@ -1,57 +1,67 @@
 #!/usr/bin/python3
-"""
-Fabric script that distributes an archive to web servers
-"""
-from fabric.operations import put, run, sudo
+'''
+fabric script to distribute an archive to web servers
+'''
+
 import os
-from fabric.api import run, local, sudo, env
 from datetime import datetime
+from fabric.api import env, local, put, run, runs_once
 
 
-dt = datetime.now()
-
-env.hosts = ['34.74.35.201', '35.196.181.73']
-
-
-def do_pack():
-    """ Packs web_static files into .tgz file
-    """
-    file_name = 'versions/web_static_{}{}{}{}{}{}.tgz'.format(
-        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    local('mkdir -p versions')
-    command = local("tar -cvzf " + file_name + " ./web_static/")
-    if command == 0:
-        return file_name
-    return None
+env.hosts = ['44.200.193.76', '18.204.1.201']
 
 
 def do_deploy(archive_path):
-    """ deploy an archive from the archive_path
+    """Distributes an archive to a web server.
+    Args:
+        archive_path (str): The path of the archive to distribute.
+    Returns:
+        If the file doesn't exist at archive_path or an error occurs - False.
+        Otherwise - True.
     """
-    if os.path.exists(archive_path) is False:
-        return False
-    file_name = os.path.splitext(os.path.split(archive_path)[1])[0]
-    target = '/data/web_static/releases/' + file_name
-    path = archive_path.split('/')[1]
+    if not os.path.isdir("versions"):
+        os.mkdir("versions")
+    cur_time = datetime.now()
+    output = "versions/web_static_{}{}{}{}{}{}.tgz".format(
+        cur_time.year,
+        cur_time.month,
+        cur_time.day,
+        cur_time.hour,
+        cur_time.minute,
+        cur_time.second
+    )
     try:
-        """put("{}/tmp/".format(archive_path))
-        run('sudo mkdir -p {}'.format(target))
-        run('sudo tar -xzf /tmp/{} -C {}/'.format(path, target))
-        run('sudo rm /tmp/{}'.format(path))
-        run('sudo mv {}/web_static/* {}/'.format(target, target))
-        run('sudo rm -rf {}/web_static'.format(target))
-        run('sudo rm -rf /data/web_static/current')
-        run('sudo ln -s {}/ /data/web_static/current'.format(target))"""
+        print("Packing web_static to {}".format(output))
+        local("tar -cvzf {} web_static".format(output))
+        archize_size = os.stat(output).st_size
+        print("web_static packed: {} -> {} Bytes".format(output, archize_size))
+    except Exception:
+        output = None
+    return output
 
-        put(archive_path, "/tmp/")
-        run('sudo mkdir -p ' + target)
-        run('sudo tar -xzf /tmp/' + path + ' -C ' + target + '/')
-        run('sudo rm /tmp/' + path)
-        run('sudo mv ' + target + '/web_static/* ' + target + '/')
-        run('sudo rm -rf ' + target + '/web_static')
-        run('sudo rm -rf /data/web_static/current')
-        run('sudo ln -s ' + target + '/ /data/web_static/current')
-        print("New version deployed!")
-        return True
-    except:
+
+def do_deploy(archive_path):
+    """Deploys the static files to the host servers.
+    Args:
+        archive_path (str): The path to the archived static files.
+    """
+    if not os.path.exists(archive_path):
         return False
+    file_name = os.path.basename(archive_path)
+    folder_name = file_name.replace(".tgz", "")
+    folder_path = "/data/web_static/releases/{}/".format(folder_name)
+    success = False
+    try:
+        put(archive_path, "/tmp/{}".format(file_name))
+        run("mkdir -p {}".format(folder_path))
+        run("tar -xzf /tmp/{} -C {}".format(file_name, folder_path))
+        run("rm -rf /tmp/{}".format(file_name))
+        run("mv {}web_static/* {}".format(folder_path, folder_path))
+        run("rm -rf {}web_static".format(folder_path))
+        run("rm -rf /data/web_static/current")
+        run("ln -s {} /data/web_static/current".format(folder_path))
+        print('New version deployed!')
+        success = True
+    except Exception:
+        success = False
+    return success

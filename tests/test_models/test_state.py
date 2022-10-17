@@ -1,19 +1,22 @@
 #!/usr/bin/python3
-"""ok"""
+""" """
 from tests.test_models.test_base_model import test_basemodel
 from models.state import State
+import os
 
 
 class test_state(test_basemodel):
-    """ok"""
+    """ states test class"""
 
     def __init__(self, *args, **kwargs):
-        """ok"""
+        """ state test class init"""
         super().__init__(*args, **kwargs)
         self.name = "State"
         self.value = State
 
     def test_name3(self):
-        """ """
+        """ testing state name attr"""
         new = self.value()
-        self.assertEqual(type(new.name), str)
+        self.assertEqual(type(new.name), str if
+                         os.getenv('HBNB_TYPE_STORAGE') != 'db' else
+                         type(None))
